@@ -12,7 +12,7 @@ const useCustomerStore = create((set) => ({
   fetchCustomers: async () => {
     set({ loading: true, error: null });
     try {
-      const response = await axiosInstance.get("/customers/getAllCustomer");
+      const response = await axiosInstance.get("/users?role=customer");
       set({ customers: response.data, loading: false });
       return response.data;
     } catch (error) {
@@ -27,14 +27,19 @@ const useCustomerStore = create((set) => ({
   fetchCustomerById: async (id) => {
     set({ loading: true, error: null });
     try {
-      const response = await axiosInstance.get(`/customers/getById/${id}`);
-      set({ currentCustomer: response.data, loading: false });
-      return response.data;
+      const response = await axiosInstance.get(`/users/${id}`);
+      const customer =
+        response.data.success && response.data.data
+          ? response.data.data
+          : response.data;
+      set({ currentCustomer: customer, loading: false });
+      return customer;
     } catch (error) {
       set({
         error: error.response?.data?.message || error.message,
         loading: false,
       });
+      throw error;
     }
   },
 

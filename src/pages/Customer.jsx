@@ -17,13 +17,17 @@ import {
   X,
   Clock,
   Plus,
+  Phone,
 } from "lucide-react";
 import useCustomerStore from "../store/useCustomerStore";
 import { useOrderStore } from "../store/CustomerOrderStore.js";
+import useUserStore from "../store/useUserStore";
+import { toast } from "react-toastify";
 
 const Customer = () => {
   const navigate = useNavigate();
   const { fetchCustomers, customers } = useCustomerStore();
+  const { toggleStatus, loading: userLoading } = useUserStore();
   const { fetchCustomerOrderSummary } = useOrderStore();
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
@@ -34,110 +38,164 @@ const Customer = () => {
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Store orders from the order store (expected to be an array)
   const [customerOrders, setCustomerOrders] = useState([]);
 
-  // Fetch customers and customer orders on mount
   useEffect(() => {
     handleRefresh();
-  }, [fetchCustomers, fetchCustomerOrderSummary]);
+  }, []);
 
   const handleRefresh = async () => {
     setIsLoading(true);
     try {
       await fetchCustomers();
+
       const res = await fetchCustomerOrderSummary();
-      setCustomerOrders(Array.isArray(res) ? res : []);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
-    setLastRefresh(new Date());
-    setIsLoading(false);
-  };
 
-  // Combine customers with their order summaries whenever either changes.
-  useEffect(() => {
-    if (customers.length === 0) return;
+      console.log("Order Summary Response:", res);
+      console.log("Type:", typeof res);
 
-    // Transform each customer with aggregated order info.
-    const transformedData = customers.map((cust) => {
-      // Filter orders matching this customer id.
-      const ordersForCustomer = customerOrders.filter(
-        (order) => order.customer === cust._id
-      );
-      const noOfOrders = ordersForCustomer.length;
-
-      // Calculate total spent across all orders.
-      const totalSpent =
-        ordersForCustomer.length > 0
-          ? ordersForCustomer.reduce(
-              (acc, order) => acc + parseFloat(order.paymentTotal || 0),
-              0
-            )
-          : 0;
-
-      let lastOrder = "no order";
-      let lastOrderData = null;
-      let lastOrderDate = null;
-      if (ordersForCustomer.length > 0) {
-        // Sort orders by invoiceDate descending.
-        const sortedOrders = ordersForCustomer.sort(
-          (a, b) =>
-            new Date(b.invoiceDetails[0].invoiceDate) -
-            new Date(a.invoiceDetails[0].invoiceDate)
-        );
-        lastOrder = sortedOrders[0].invoiceDetails[0].invoiceNo;
-        lastOrderData = sortedOrders[0];
-        lastOrderDate = sortedOrders[0].invoiceDetails[0].invoiceDate;
+      let ordersArray = [];
+      if (Array.isArray(res)) {
+        ordersArray = res;
+      } else if (res?.data && Array.isArray(res.data)) {
+        ordersArray = res.data;
+      } else if (res?.success && Array.isArray(res.orders)) {
+        ordersArray = res.orders;
       }
 
-      return {
-        key: cust._id,
-        id: `CUST-${cust._id.slice(-4).toUpperCase()}`,
-        name: `${cust.firstName} ${cust.lastName}`,
-        email: cust.email,
-        phone: cust.phone || "",
-        location:
-          cust.addresses && cust.addresses.length > 0
-            ? `${cust.addresses[0].city}, ${
-                cust.addresses[0].state || ""
-              }`.trim()
-            : "",
-        orders: noOfOrders,
-        lastOrder,
-        lastOrderData,
-        lastOrderDate,
-        totalSpent: totalSpent.toFixed(2),
-        status: "active",
-        primaryBranch:
-          cust.addresses && cust.addresses.length > 0
-            ? cust.addresses[0].city
-            : "N/A",
-      };
-    });
+      console.log("Processed Orders Array:", ordersArray);
+      setCustomerOrders(ordersArray);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setCustomerOrders([]);
+    } finally {
+      setLastRefresh(new Date());
+      setIsLoading(false);
+    }
+  };
 
-    setData(transformedData);
-    setFilteredData(transformedData);
+  useEffect(() => {
+    console.log("Customers from store:", customers);
+    console.log("Is customers an array?", Array.isArray(customers));
+
+    const customersArray = Array.isArray(customers)
+      ? customers
+      : customers?.data && Array.isArray(customers.data)
+        ? customers.data
+        : [];
+
+    if (customersArray.length === 0) {
+      setData([]);
+      setFilteredData([]);
+      return;
+    }
+
+    try {
+      const transformedData = customersArray.map((cust) => {
+        const ordersForCustomer = customerOrders.filter((order) => {
+          const customerId = order.customer || order.customerId || order.userId;
+          return customerId === cust._id;
+        });
+
+        const noOfOrders = ordersForCustomer.length;
+
+        const totalSpent = ordersForCustomer.reduce((acc, order) => {
+          const orderTotal = parseFloat(
+            order.paymentTotal ||
+            order.totalAmount ||
+            order.total ||
+            0
+          );
+          return acc + orderTotal;
+        }, 0);
+
+        let lastOrder = "no order";
+        let lastOrderData = null;
+        let lastOrderDate = null;
+
+        if (ordersForCustomer.length > 0) {
+          const sortedOrders = [...ordersForCustomer].sort((a, b) => {
+            const dateA = new Date(
+              a.invoiceDetails?.[0]?.invoiceDate ||
+              a.orderDate ||
+              a.createdAt ||
+              0
+            );
+            const dateB = new Date(
+              b.invoiceDetails?.[0]?.invoiceDate ||
+              b.orderDate ||
+              b.createdAt ||
+              0
+            );
+            return dateB - dateA;
+          });
+
+          const latestOrder = sortedOrders[0];
+          lastOrder =
+            latestOrder.invoiceDetails?.[0]?.invoiceNo ||
+            latestOrder.orderNumber ||
+            latestOrder.invoiceNo ||
+            `ORD-${latestOrder._id?.slice(-4).toUpperCase()}`;
+          lastOrderData = latestOrder;
+          lastOrderDate =
+            latestOrder.invoiceDetails?.[0]?.invoiceDate ||
+            latestOrder.orderDate ||
+            latestOrder.createdAt;
+        }
+
+        return {
+          key: cust._id,
+          id: `CUST-${cust._id.slice(-4).toUpperCase()}`,
+          name: `${cust.firstName} ${cust.lastName}`,
+          email: cust.email,
+          phone: cust.phone || "",
+          location:
+            cust.addresses && cust.addresses.length > 0
+              ? `${cust.addresses[0].city}${cust.addresses[0].state ? `, ${cust.addresses[0].state}` : ""
+                }`.trim()
+              : "",
+          orders: noOfOrders,
+          lastOrder,
+          lastOrderData,
+          lastOrderDate,
+          totalSpent: totalSpent.toFixed(2),
+          status: cust.isActive ? "active" : "inactive",
+          primaryBranch:
+            cust.addresses && cust.addresses.length > 0
+              ? cust.addresses[0].city
+              : "N/A",
+        };
+      });
+
+      setData(transformedData);
+      setFilteredData(transformedData);
+    } catch (error) {
+      console.error("Error transforming customer data:", error);
+      setData([]);
+      setFilteredData([]);
+    }
   }, [customers, customerOrders]);
 
-  // Filter and sort logic
   useEffect(() => {
-    let filtered = data;
+    if (!data || data.length === 0) {
+      setFilteredData([]);
+      return;
+    }
 
-    // Text search
-    if (searchText) {
+    let filtered = [...data];
+
+    if (searchText.trim()) {
+      const searchLower = searchText.toLowerCase();
       filtered = filtered.filter((item) =>
         Object.values(item).some((val) =>
-          String(val).toLowerCase().includes(searchText.toLowerCase())
+          String(val).toLowerCase().includes(searchLower)
         )
       );
     }
 
-    // Sort
     filtered.sort((a, b) => {
       let aValue, bValue;
 
@@ -155,8 +213,8 @@ const Customer = () => {
           bValue = parseFloat(b.totalSpent);
           break;
         case "lastOrderDate":
-          aValue = a.lastOrderDate ? new Date(a.lastOrderDate) : new Date(0);
-          bValue = b.lastOrderDate ? new Date(b.lastOrderDate) : new Date(0);
+          aValue = a.lastOrderDate ? new Date(a.lastOrderDate).getTime() : 0;
+          bValue = b.lastOrderDate ? new Date(b.lastOrderDate).getTime() : 0;
           break;
         default:
           aValue = a[sortBy];
@@ -174,7 +232,6 @@ const Customer = () => {
     setCurrentPage(1);
   }, [data, searchText, sortBy, sortOrder]);
 
-  // Pagination logic
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedCustomers = filteredData.slice(
@@ -182,15 +239,13 @@ const Customer = () => {
     startIndex + itemsPerPage
   );
 
-  // Calculate summary stats
   const totalCustomers = data.length;
-  const activeCustomers = data.length;
+  const activeCustomers = data.filter((c) => c.status === "active").length;
   const returningCustomers = data.filter((c) => c.orders > 1).length;
   const highValueCustomers = data.filter(
     (c) => parseFloat(c.totalSpent) > 2000
   ).length;
 
-  // Clear filters
   const handleClearFilters = () => {
     setSearchText("");
     setSortBy("totalSpent");
@@ -198,7 +253,6 @@ const Customer = () => {
     setShowAdvancedFilters(false);
   };
 
-  // Export functionality
   const handleExport = (format = "csv") => {
     const headers = [
       "Name",
@@ -245,40 +299,40 @@ const Customer = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  // Navigate to customer details on name click
   const handleCustomerClick = (record) => {
-    // Filter orders for the selected customer
-    const ordersForCustomer = customerOrders.filter(
-      (order) => order.customer === record.key
-    );
+    const ordersForCustomer = customerOrders.filter((order) => {
+      const customerId = order.customer || order.customerId || order.userId;
+      return customerId === record.key;
+    });
     navigate(`/customers/${record.key}`, {
       state: { customer: record, orders: ordersForCustomer },
     });
   };
 
-  // Handle menu click for actions
   const handleMenuClick = (key, record) => {
     if (key === "order") {
       navigate("/sales/orders", { state: { customerName: record.name } });
     } else if (key === "wishlist") {
-      // Handle wishlist
       console.log("Wishlist for:", record.name);
     }
   };
 
-  // Update page size
   const handlePageSizeChange = (value) => {
-    setItemsPerPage(parseInt(value));
+    setItemsPerPage(parseInt(value, 10));
     setCurrentPage(1);
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "No order";
-    return new Date(dateString).toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+    try {
+      return new Date(dateString).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    } catch (error) {
+      return "Invalid date";
+    }
   };
 
   const getStatusColor = (status) => {
@@ -292,10 +346,27 @@ const Customer = () => {
     }
   };
 
-  const handleStatusChange = (record, field, value) => {
-    setData((prev) =>
-      prev.map((c) => (c.key === record.key ? { ...c, [field]: value } : c))
-    );
+  const handleStatusChange = async (customer, field, value) => {
+    try {
+      setData((prev) =>
+        prev.map((c) => (c.key === customer.key ? { ...c, [field]: value } : c))
+      );
+      await toggleStatus(customer.key, value);
+
+      toast.success(
+        `Customer ${value === "active" ? "activated" : "deactivated"} successfully`
+      );
+    } catch (error) {
+      setData((prev) =>
+        prev.map((c) =>
+          c.key === customer.key ? { ...c, [field]: customer.status } : c
+        )
+      );
+      toast.error(
+        error.response?.data?.message || "Failed to update customer status"
+      );
+      console.error("Error updating status:", error);
+    }
   };
 
   return (
@@ -303,6 +374,14 @@ const Customer = () => {
       <div className="p-4 w-full">
         {/* Header */}
         <div className="flex items-center justify-end gap-2 mb-0 py-2">
+          <button
+            onClick={() => handleRefresh()}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1 px-3 py-2 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
+            Refresh
+          </button>
           <button
             onClick={handleExport}
             className="inline-flex items-center gap-1 px-3 py-2 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
@@ -312,7 +391,7 @@ const Customer = () => {
           </button>
 
           <button
-            onClick={() => navigate("/customers/addcustomer")}
+            onClick={() => navigate("/users/add-user")}
             className="inline-flex items-center gap-2 bg-[#293a90] hover:bg-[#293a90]/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             <Plus size={16} />
@@ -413,7 +492,8 @@ const Customer = () => {
                   More
                   <ChevronDown
                     size={12}
-                    className={showAdvancedFilters ? "rotate-180" : ""}
+                    className={`transition-transform ${showAdvancedFilters ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
               </div>
@@ -470,186 +550,232 @@ const Customer = () => {
 
         {/* Customers Table */}
         <div className="bg-white rounded-lg border border-gray-200 overflow-visible w-full">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Customer
-                </th>
-                <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Orders
-                </th>
-                <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total Spent
-                </th>
-                <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Order
-                </th>
-                <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Location
-                </th>
-                <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {paginatedCustomers.map((customer) => (
-                <tr
-                  key={customer.key}
-                  onClick={() => handleCustomerClick(customer)}
-                  className="hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <td className="py-2 px-4">
-                    <div className="text-xs font-medium text-[#293a90]">
-                      {customer.name}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      ID: {customer.id}
-                    </div>
-                  </td>
-                  <td className="py-2 px-4">
-                    <div className="space-y-1">
-                      {customer.email && (
-                        <div className="flex items-center gap-1">
-                          <Mail size={10} className="text-gray-400" />
-                          <span className="text-xs text-gray-900">
-                            {customer.email}
-                          </span>
-                        </div>
-                      )}
-                      {customer.phone && (
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-gray-900">
-                            {customer.phone}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-2 px-4 text-xs font-medium text-gray-900">
-                    {customer.orders}
-                  </td>
-                  <td className="py-2 px-4 text-xs font-medium text-gray-900">
-                    ₹{customer.totalSpent}
-                  </td>
-                  <td className="py-2 px-4 text-xs text-gray-900">
-                    {formatDate(customer.lastOrderDate)}
-                  </td>
-                  <td className="py-2 px-4">
-                    <div className="flex items-center gap-1">
-                      <MapPin size={10} className="text-gray-400" />
-                      <span className="text-xs text-gray-900">
-                        {customer.primaryBranch}
-                      </span>
-                    </div>
-                  </td>
-                  <td
-                    className="py-2 px-4"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <select
-                      value={customer.status}
-                      onChange={(e) =>
-                        handleStatusChange(customer, "status", e.target.value)
-                      }
-                      className={`px-2 py-1 text-xs rounded-full border transition-colors cursor-pointer ${getStatusColor(
-                        customer.status
-                      )}`}
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </td>
-
-                  <td
-                    className="py-2 px-4"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="relative group justify-end">
-                      <button className="p-1 text-[#293a90] hover:bg-[#293a90]/10 rounded">
-                        <MoreHorizontal size={16} />
-                      </button>
-                      <div className="absolute right-0 top-full mt-1 text-xs bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-32 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                        <div className="p-1">
-                          <button
-                            onClick={() => handleMenuClick("order", customer)}
-                            className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 rounded"
-                          >
-                            Order
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-
-              {paginatedCustomers.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-8 text-center text-gray-500"
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <Users className="w-8 h-8 text-gray-300" />
-                      <span className="text-xs">No customers found</span>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between w-full">
-              <div className="text-xs text-gray-700">
-                Showing {startIndex + 1} to{" "}
-                {Math.min(startIndex + itemsPerPage, filteredData.length)} of{" "}
-                {filteredData.length} results
-              </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                {Array.from(
-                  { length: Math.min(totalPages, 5) },
-                  (_, i) => i + 1
-                ).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-2 py-1 text-xs rounded ${
-                      currentPage === page
-                        ? "bg-[#293a90] text-white border border-[#293a90]"
-                        : "border border-gray-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-                <button
-                  onClick={() =>
-                    setCurrentPage(Math.min(totalPages, currentPage + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                  className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="h-6 w-6 text-[#293a90] animate-spin" />
+              <span className="ml-2 text-sm text-gray-600">Loading customers...</span>
             </div>
+          ) : (
+            <>
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Customer
+                    </th>
+                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Phone
+                    </th>
+                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Orders
+                    </th>
+                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total Spent
+                    </th>
+                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Last Order
+                    </th>
+                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Location
+                    </th>
+                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {paginatedCustomers.map((customer) => (
+                    <tr
+                      key={customer.key}
+                      onClick={() => handleCustomerClick(customer)}
+                      className="hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      {/* Customer Name & ID */}
+                      <td className="py-2 px-4">
+                        <div className="text-xs font-medium text-[#293a90]">
+                          {customer.name}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          ID: {customer.id}
+                        </div>
+                      </td>
+
+                      {/* Email Column */}
+                      <td className="py-2 px-4">
+                        {customer.email ? (
+                          <div className="flex items-center gap-1">
+                            <Mail size={10} className="text-gray-400" />
+                            <span className="text-xs text-gray-900">
+                              {customer.email}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
+                      </td>
+
+                      {/* Phone Column */}
+                      <td className="py-2 px-4">
+                        {customer.phone ? (
+                          <div className="flex items-center gap-1">
+                            <Phone size={10} className="text-gray-400" />
+                            <span className="text-xs text-gray-900">
+                              {customer.phone}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
+                      </td>
+
+                      {/* Orders */}
+                      <td className="py-2 px-4 text-xs font-medium text-gray-900">
+                        {customer.orders}
+                      </td>
+
+                      {/* Total Spent */}
+                      <td className="py-2 px-4 text-xs font-medium text-gray-900">
+                        ₹{customer.totalSpent}
+                      </td>
+
+                      {/* Last Order */}
+                      <td className="py-2 px-4 text-xs text-gray-900">
+                        {formatDate(customer.lastOrderDate)}
+                      </td>
+
+                      {/* Location */}
+                      <td className="py-2 px-4">
+                        <div className="flex items-center gap-1">
+                          <MapPin size={10} className="text-gray-400" />
+                          <span className="text-xs text-gray-900">
+                            {customer.primaryBranch}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td
+                        className="py-2 px-4"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <select
+                          value={customer.status}
+                          onChange={(e) =>
+                            handleStatusChange(
+                              customer,
+                              "status",
+                              e.target.value
+                            )
+                          }
+                          className={`px-2 py-1 text-xs rounded-full border transition-colors cursor-pointer ${getStatusColor(
+                            customer.status
+                          )}`}
+                        >
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
+                        </select>
+                      </td>
+
+                      {/* Actions */}
+                      <td
+                        className="py-2 px-4"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="relative group justify-end">
+                          <button className="p-1 text-[#293a90] hover:bg-[#293a90]/10 rounded">
+                            <MoreHorizontal size={16} />
+                          </button>
+                          <div className="absolute right-0 top-full mt-1 text-xs bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-32 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                            <div className="p-1">
+                              <button
+                                onClick={() =>
+                                  handleMenuClick("order", customer)
+                                }
+                                className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 rounded"
+                              >
+                                Order
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {paginatedCustomers.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={9}
+                        className="px-4 py-8 text-center text-gray-500"
+                      >
+                        <div className="flex flex-col items-center gap-2">
+                          <Users className="w-8 h-8 text-gray-300" />
+                          <span className="text-xs">
+                            {searchText
+                              ? "No customers found matching your search"
+                              : "No customers found"}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between w-full">
+                  <div className="text-xs text-gray-700">
+                    Showing {startIndex + 1} to{" "}
+                    {Math.min(startIndex + itemsPerPage, filteredData.length)}{" "}
+                    of {filteredData.length} results
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() =>
+                        setCurrentPage(Math.max(1, currentPage - 1))
+                      }
+                      disabled={currentPage === 1}
+                      className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    {Array.from(
+                      { length: Math.min(totalPages, 5) },
+                      (_, i) => i + 1
+                    ).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-2 py-1 text-xs rounded ${currentPage === page
+                          ? "bg-[#293a90] text-white border border-[#293a90]"
+                          : "border border-gray-300 hover:bg-gray-50"
+                          }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    {totalPages > 5 && <span className="px-2 py-1 text-xs">...</span>}
+                    <button
+                      onClick={() =>
+                        setCurrentPage(Math.min(totalPages, currentPage + 1))
+                      }
+                      disabled={currentPage === totalPages}
+                      className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
