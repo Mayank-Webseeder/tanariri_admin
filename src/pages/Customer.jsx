@@ -289,9 +289,9 @@ const Customer = () => {
           <button onClick={handleExport} className="inline-flex items-center gap-1 px-3 py-2 text-xs text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-200 bg-white">
             <Download size={14} /> Export
           </button>
-          <button onClick={() => navigate("/users/add-user")} className="inline-flex items-center gap-2 bg-[#293a90] hover:bg-[#293a90]/90 text-white px-4 py-2 rounded-lg text-sm font-medium">
+          {/* <button onClick={() => navigate("/users/add-user")} className="inline-flex items-center gap-2 bg-[#293a90] hover:bg-[#293a90]/90 text-white px-4 py-2 rounded-lg text-sm font-medium">
             <Plus size={16} /> Add Customer
-          </button>
+          </button> */}
         </div>
 
         {/* Stats Cards */}

@@ -1,167 +1,12 @@
-// import React, { useState, useRef, useEffect } from "react";
-// import { Link, useLocation, useNavigate } from "react-router-dom";
-// import {
-//   FaBars,
-//   FaUserCircle,
-//   FaCog,
-//   FaLock,
-//   FaPowerOff,
-// } from "react-icons/fa";
-// import useAdminStore from "../store/useAdminStore";
-
-// // Define menu items (same as in Sidebar) to map paths to labels
-// const menuItems = [
-//   { label: "Dashboard", icon: FaBars, path: "/dashboard" },
-//   {
-//     label: "Sales",
-//     icon: FaBars,
-//     subItems: [
-//       { label: "Orders", icon: FaBars, path: "/sales/orders" },
-//       { label: "Abandoned Cart", icon: FaBars, path: "/sales/abandoned-cart" },
-//       {
-//         label: "Cancelled Orders",
-//         icon: FaBars,
-//         path: "/sales/cancelled-orders",
-//       },
-//       { label: "Wishlist", icon: FaBars, path: "/sales/wishlist" },
-//     ],
-//   },
-//   {
-//     label: "Catalogue",
-//     icon: FaBars,
-//     subItems: [
-//       { label: "Products", icon: FaBars, path: "/catalogue/product" },
-//       { label: "Categories", icon: FaBars, path: "/catalogue/categories" },
-//     ],
-//   },
-//   { label: "Customers", icon: FaBars, path: "/customers" },
-//   { label: "Distributor", icon: FaBars, path: "/distributor" },
-//   { label: "Inquiry", icon: FaBars, path: "/inquiry" },
-//   { label: "Settings", icon: FaBars, path: "/settings" },
-//   { label: "Help", icon: FaBars, path: "/help" },
-// ];
-
-// export default function Navbar({ toggleSidebar }) {
-//   const { adminLogout } = useAdminStore();
-//   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-//   const dropdownRef = useRef(null);
-//   const location = useLocation();
-//   const navigate = useNavigate();
-
-//   // Function to get the active label based on the current path
-//   const getActiveLabel = () => {
-//     // Flatten the menuItems array to include subItems for easier lookup
-//     const allItems = menuItems.flatMap((item) =>
-//       item.subItems ? [item, ...item.subItems] : [item]
-//     );
-
-//     // Find the matching item based on the current pathname
-//     const activeItem = allItems.find((item) => {
-//       // Handle nested routes (e.g., /sales/orders/addOrder should still show "Orders")
-//       return location.pathname.startsWith(item.path);
-//     });
-
-//     // Return the label of the active item, or a fallback if no match
-//     return activeItem ? activeItem.label : "Dashboard"; // Default to "Dashboard" if no match
-//   };
-
-//   const toggleDropdown = () => {
-//     setIsDropdownOpen((prev) => !prev);
-//   };
-
-//   useEffect(() => {
-//     const handleClickOutside = (event) => {
-//       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-//         setIsDropdownOpen(false);
-//       }
-//     };
-//     document.addEventListener("mousedown", handleClickOutside);
-//     return () => {
-//       document.removeEventListener("mousedown", handleClickOutside);
-//     };
-//   }, []);
-
-//   const handlelogout = async () => {
-//     try {
-//       await adminLogout();
-//       navigate("/");
-//     } catch (error) {
-//       console.error("Logout error:", error);
-//     }
-//   };
-
-//   return (
-//     <nav className="w-full border-b-2 border-red-600  text-black p-4 flex justify-between items-center">
-//       {/* Left Section */}
-//       <div className="flex items-center">
-//         <FaBars
-//           className="mr-4 cursor-pointer md:hidden"
-//           size={20}
-//           onClick={toggleSidebar}
-//         />
-//         <span className="text-xl font-semibold">{getActiveLabel()}</span>
-//       </div>
-
-//       {/* Right Section */}
-//       <div className="relative" ref={dropdownRef}>
-//         <div
-//           className="flex items-center cursor-pointer"
-//           onClick={toggleDropdown}
-//         >
-//           <FaUserCircle className="w-8 h-8 mr-2" />
-//           <span className="hidden sm:inline">Admin</span>
-//         </div>
-
-//         {isDropdownOpen && (
-//           <div className="absolute right-0 mt-2 w-48 bg-white text-black rounded shadow-lg">
-//             <ul>
-//               <li className="p-2 hover:bg-gray-100">
-//                 <Link to="/manage-profile" className="flex items-center">
-//                   <FaCog className="mr-2" />
-//                   Manage Profile
-//                 </Link>
-//               </li>
-//               <li className="p-2 hover:bg-gray-100">
-//                 <Link to="/change-password" className="flex items-center">
-//                   <FaLock className="mr-2" />
-//                   Change Password
-//                 </Link>
-//               </li>
-//               <li
-//                 className="p-2 hover:bg-gray-100"
-//                 onClick={
-//                   () => handlelogout() // Call your logout function heres
-//                 }
-//               >
-//                 <div className="flex items-center">
-//                   <FaPowerOff className="mr-2" />
-//                   Log Out
-//                 </div>
-//               </li>
-//             </ul>
-//           </div>
-//         )}
-//       </div>
-//     </nav>
-//   );
-// }
-
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  FaBars,
-  FaUserCircle,
-  FaCog,
-  FaLock,
-  FaPowerOff,
-  FaChevronDown,
-} from "react-icons/fa";
-import { User, Settings, Lock, LogOut } from "lucide-react";
+import { FaBars } from "react-icons/fa";
+import { User, Bell } from "lucide-react";
 import useAdminStore from "../store/useAdminStore";
 
-// Define menu items (flattened to match the updated sidebar)
 const menuItems = [
   { label: "Dashboard", path: "/dashboard" },
+  { label: "Notifications", path: "/notifications" },
   { label: "Orders", path: "/sales/orders" },
   { label: "Abandoned Cart", path: "/sales/abandoned-cart" },
   { label: "Cancelled Orders", path: "/sales/cancelled-orders" },
@@ -183,20 +28,40 @@ const menuItems = [
 export default function Navbar({ toggleSidebar }) {
   const { adminLogout } = useAdminStore();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [adminName, setAdminName] = useState("Admin"); // Default state
+
+  // Example: This should come from your store/API
+  const unreadCount = 3;
+
   const dropdownRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Function to get the active label based on the current path
+  // Load Admin Name from LocalStorage on Mount
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem("adminUser");
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        if (parsedUser.firstName) {
+          // Combine First and Last name, or just use First name
+          const fullName = parsedUser.lastName
+            ? `${parsedUser.firstName} ${parsedUser.lastName}`
+            : parsedUser.firstName;
+          setAdminName(fullName);
+        }
+      }
+    } catch (error) {
+      console.error("Error parsing adminUser from localStorage:", error);
+    }
+  }, []);
+
   const getActiveLabel = () => {
-    // Find the matching item based on the current pathname
     const activeItem = menuItems.find((item) => {
-      // Handle nested routes (e.g., /sales/orders/addOrder should still show "Orders")
       return location.pathname.startsWith(item.path);
     });
 
-    // Return the label of the active item, or a fallback if no match
-    return activeItem ? activeItem.label : "Dashboard"; // Default to "Dashboard" if no match
+    return activeItem ? activeItem.label : "Dashboard";
   };
 
   const toggleDropdown = () => {
@@ -225,75 +90,98 @@ export default function Navbar({ toggleSidebar }) {
   };
 
   return (
-    <nav className="w-full bg-white border-b border-gray-200 shadow-sm">
-      <div className="pr-4 pl-2 py-2 flex justify-between items-center">
-        {/* Left Section */}
-        <div className="flex items-center ">
+    <nav className="w-full bg-white border-b border-gray-200 shadow-sm sticky top-0 z-30">
+      <div className="px-3 sm:px-4 py-2.5 flex justify-between items-center">
+        {/* Left Section: Hamburger + Logo + Page Title */}
+        <div className="flex items-center gap-3">
           <button
-            className="mr-4 p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 lg:hidden transition-colors"
+            className="p-2 -ml-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 lg:hidden transition-colors"
             onClick={toggleSidebar}
+            aria-label="Toggle Sidebar"
           >
-            <FaBars className="text-gray-600" size={16} />
+            <FaBars className="text-gray-600" size={20} />
           </button>
 
-          <img src="/TanaRiri_Logo.png" alt="Logo" className="h-8 w-auto mr-4 " />
-          <div className="flex items-center">
-            <h1 className="text-lg font-semibold text-gray-900">
+          <div className="flex items-center gap-3">
+            <img
+              src="/TanaRiri_Logo.png"
+              alt="Logo"
+              className="h-7 w-auto sm:h-8"
+            />
+
+            {/* Divider (visible on mobile to separate logo/title) */}
+            <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+
+            <h1 className="text-base sm:text-lg font-semibold text-gray-900 truncate max-w-[150px] sm:max-w-none">
               {getActiveLabel()}
             </h1>
           </div>
         </div>
 
-        {/* Right Section */}
-        <div className="relative" ref={dropdownRef}>
+        {/* Right Section: Bell + Profile */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Notification Bell */}
           <button
-            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50  transition-colors"
-            onClick={toggleDropdown}
+            onClick={() => navigate("/notifications")}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative group"
+            aria-label="Notifications"
           >
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <User className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="hidden sm:flex items-center gap-1">
-              <span className="text-sm font-medium text-gray-700">Admin</span>
-              {/* <FaChevronDown
-                className={`text-gray-500 transition-transform duration-200 ${
-                  isDropdownOpen ? "rotate-180" : ""
-                }`}
-                size={12}
-              /> */}
-            </div>
+            <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 group-hover:text-gray-800" />
+
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 flex h-4 w-4 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white ring-2 ring-white">
+                {unreadCount}
+              </span>
+            )}
           </button>
 
-          {/* {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-              <div className="py-1">
-                <Link
-                  to="/manage-profile"
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  onClick={() => setIsDropdownOpen(false)}
-                >
-                  <Settings className="w-4 h-4 text-gray-500" />
-                  Manage Profile
-                </Link>
-                <Link
-                  to="/change-password"
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  onClick={() => setIsDropdownOpen(false)}
-                >
-                  <Lock className="w-4 h-4 text-gray-500" />
-                  Change Password
-                </Link>
-                <div className="border-t border-gray-100 my-1"></div>
-                <button
-                  onClick={handlelogout}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                >
-                  <LogOut className="w-4 h-4 text-red-500" />
-                  Log Out
-                </button>
+          {/* Profile Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-200"
+              onClick={toggleDropdown}
+            >
+              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-blue-100 rounded-full flex items-center justify-center shrink-0 border border-blue-200">
+                <span className="text-sm font-bold text-blue-700">
+                  {adminName.charAt(0).toUpperCase()}
+                </span>
               </div>
-            </div>
-          )} */}
+
+              <div className="hidden sm:flex flex-col items-start">
+                <span className="text-sm font-medium text-gray-700 truncate max-w-[120px] leading-tight">
+                  {adminName}
+                </span>
+                <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">
+                  Admin
+                </span>
+              </div>
+            </button>
+
+            {/* Dropdown Menu (Hidden by default, shown via state) */}
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                <div className="py-1">
+                  <div className="px-4 py-2 border-b border-gray-100 sm:hidden">
+                    <p className="text-sm font-medium text-gray-900 truncate">{adminName}</p>
+                    <p className="text-xs text-gray-500">Administrator</p>
+                  </div>
+                  <Link
+                    to="/settings"
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setIsDropdownOpen(false)}
+                  >
+                    Settings
+                  </Link>
+                  <button
+                    onClick={handlelogout}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                  >
+                    Log Out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </nav>

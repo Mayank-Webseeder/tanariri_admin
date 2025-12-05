@@ -278,7 +278,7 @@ const AddUserPage = () => {
                   >
                     {/* <option value="admin">Admin</option> */}
                     <option value="userpannel">Panel User</option>
-                    <option value="customer">Customer</option>
+                    {/* <option value="customer">Customer</option> */}
                   </select>
                 </div>
               </div>

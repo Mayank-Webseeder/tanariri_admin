@@ -37,6 +37,7 @@ import EditUserPage from "./components/UserComponents/EditUserPage";
 import Finance from "./pages/Finance.jsx";
 import Report from "./pages/Report.jsx";
 import ReturnRequests from "./components/Dashboard/ReturnRequests.jsx";
+import NotificationPage from "./pages/NotificationPage.jsx";
 
 export default function App() {
   const { checkAuth, user, initializeAuth } = useAdminStore();
@@ -68,6 +69,7 @@ export default function App() {
                 path="sales/cancelled-orders"
                 element={<OrderCancellation />}
               />
+              <Route path="notifications" element={<NotificationPage />} />
               <Route path="sales/wishlist" element={<Wishlist />} />
               <Route path="sales/abandoned-cart" element={<AbandonedCart />} />
               <Route path="recentOrders" element={<RecentOrders />} />
