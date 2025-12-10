@@ -8,6 +8,35 @@ const useOrderStore = create((set, get) => ({
   loading: false,
   error: null,
 
+  //Ship order with delhivery
+  shipOrderWithDelhivery: async (orderId) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await axiosInstance.post(
+        `/orders/${orderId}/ship-with-delhivery`
+      );
+
+      const updatedOrder = response.data.data.order;
+
+      set((state) => ({
+        orders: state.orders.map((order) =>
+          order._id === orderId ? updatedOrder : order
+        ),
+        order: state.order?._id === orderId ? updatedOrder : state.order,
+        loading: false,
+      }));
+
+      return response.data;
+    } catch (error) {
+      console.error("Ship with Delhivery error:", error);
+      set({
+        error: error.response?.data?.message || error.message,
+        loading: false,
+      });
+      throw error;
+    }
+  },
+
   // Fetch all orders with pagination
   fetchOrders: async (page = 1, limit = 20) => {
     set({ loading: true, error: null });

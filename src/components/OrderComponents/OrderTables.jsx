@@ -19,6 +19,7 @@ const OrdersTable = () => {
     changeOrderStatus,
     fetchOrderSummary,
     deleteOrder,
+    shipOrderWithDelhivery, // <-- store action
     orders,
     summary,
     loading,
@@ -52,6 +53,7 @@ const OrdersTable = () => {
       orderStatus: order.status || "pending",
       paymentStatus: order.paymentInfo?.status || "pending",
       total: `₹${(order.totalAmount || 0).toFixed(2)}`,
+      waybill: order.waybill || null,
       orderDetails: order,
     }));
   }, [orders]);
@@ -136,10 +138,6 @@ const OrdersTable = () => {
 
   const handleViewDetails = useCallback(
     (orderId, orderDetails) => {
-      console.log(
-        "Navigating to details:",
-        `/sales/orders/order-details/${orderId}`
-      );
       navigate(`/sales/orders/order-details/${orderId}`, {
         state: { order: orderDetails },
         replace: true,
@@ -150,10 +148,6 @@ const OrdersTable = () => {
 
   const handleEditOrder = useCallback(
     (orderId, orderDetails) => {
-      console.log(
-        "Navigating to edit:",
-        `/sales/orders/order-update/${orderId}`
-      );
       navigate(`/sales/orders/order-update/${orderId}`, {
         state: { order: orderDetails },
         replace: true,
@@ -181,7 +175,20 @@ const OrdersTable = () => {
     [deleteOrder]
   );
 
-  // Pagination
+  const handleShipOrder = useCallback(
+    async (record) => {
+      try {
+        await shipOrderWithDelhivery(record.id);
+        toast.success("Shipment created successfully");
+      } catch (err) {
+        toast.error(
+          err?.response?.data?.message || "Failed to create shipment"
+        );
+      }
+    },
+    [shipOrderWithDelhivery]
+  );
+
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedData = filteredData.slice(
@@ -267,7 +274,7 @@ const OrdersTable = () => {
 
           {/* Table */}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
+            <table className="w-full min-w-[900px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -285,6 +292,10 @@ const OrdersTable = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Payment Status
                   </th>
+                  {/* Shipment toggle column */}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Shipment
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Total
                   </th>
@@ -299,10 +310,12 @@ const OrdersTable = () => {
                     key={record.key}
                     className="hover:bg-gray-50 transition-colors"
                   >
-                    {/* UPDATED: Clickable Order ID cell */}
+                    {/* Order ID */}
                     <td
                       className="px-6 py-4 cursor-pointer"
-                      onClick={() => handleViewDetails(record.id, record.orderDetails)}
+                      onClick={() =>
+                        handleViewDetails(record.id, record.orderDetails)
+                      }
                     >
                       <span className="text-sm font-medium text-[#293a90] hover:underline">
                         {record.id.slice(-6).toUpperCase()}
@@ -338,13 +351,40 @@ const OrdersTable = () => {
                         {record.paymentStatus}
                       </span>
                     </td>
+
+                    {/* Shipment cell with toggle */}
+                    <td className="px-6 py-4 text-sm">
+                      {record.orderStatus === "shipped" &&
+                        record.waybill ? (
+                        <span className="text-xs px-2 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
+                          Shipped
+                        </span>
+                      ) : record.orderStatus === "cancelled" ? (
+                        <span className="text-xs px-2 py-1 rounded-full bg-red-50 text-red-700 border border-red-200">
+                          Cancelled
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleShipOrder(record)}
+                          disabled={record.orderStatus !== "confirmed"}
+                          className={`px-3 py-1 text-xs rounded-full border ${record.orderStatus === "confirmed"
+                            ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                            : "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                            }`}
+                        >
+                          Ship now
+                        </button>
+                      )}
+                    </td>
+
                     <td className="px-6 py-4">
                       <span className="text-sm font-medium text-gray-900">
                         {record.total}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 flex-wrap">
                         <button
                           onClick={() =>
                             handleViewDetails(record.id, record.orderDetails)
@@ -382,7 +422,7 @@ const OrdersTable = () => {
                 {paginatedData.length === 0 && !loading && (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-6 py-12 text-center text-gray-500"
                     >
                       <ShoppingBag className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -405,30 +445,35 @@ const OrdersTable = () => {
                 </div>
                 <div className="flex items-center gap-1 flex-wrap">
                   <button
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    onClick={() =>
+                      setCurrentPage(Math.max(1, currentPage - 1))
+                    }
                     disabled={currentPage === 1}
                     className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     type="button"
                   >
                     Previous
                   </button>
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const page =
-                      currentPage <= 3 ? i + 1 : totalPages - 4 + i + 1;
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`px-3 py-2 text-sm rounded-lg ${currentPage === page
+                  {Array.from(
+                    { length: Math.min(5, totalPages) },
+                    (_, i) => {
+                      const page =
+                        currentPage <= 3 ? i + 1 : totalPages - 4 + i + 1;
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-2 text-sm rounded-lg ${currentPage === page
                             ? "bg-[#293a90] text-white border border-[#293a90]"
                             : "border border-gray-300 hover:bg-gray-50"
-                          }`}
-                        type="button"
-                      >
-                        {page}
-                      </button>
-                    );
-                  })}
+                            }`}
+                          type="button"
+                        >
+                          {page}
+                        </button>
+                      );
+                    }
+                  )}
                   <button
                     onClick={() =>
                       setCurrentPage(Math.min(totalPages, currentPage + 1))
