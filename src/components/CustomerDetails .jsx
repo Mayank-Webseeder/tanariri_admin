@@ -133,7 +133,7 @@ const CustomerDetails = () => {
   const orderAggregates = computeOrderAggregates(orders);
 
   const filteredOrders = orders.map((order) => ({
-    id: order.orderNumber || order.invoiceDetails?.[0]?.invoiceNo || order._id.slice(-6).toUpperCase(),
+    id: order.orderNumber || order.invoiceDetails?.[0]?.invoiceNo || order._id,
     date: order.invoiceDetails?.[0]?.invoiceDate || order.createdAt,
     status: order.paymentStatus || order.status || "Pending",
     items: order.items?.length || 0,
@@ -417,12 +417,19 @@ const CustomerDetails = () => {
                         {paginatedOrders.length > 0 ? (
                           paginatedOrders.map((order, idx) => (
                             <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                              <td className="px-4 py-3 font-medium text-blue-600">{order.id}</td>
+                              <td className="px-4 py-3 font-medium text-blue-600">{order.id.slice(-6).toUpperCase()}</td>
                               <td className="px-4 py-3 text-gray-600">{formatDate(order.date)}</td>
                               <td className="px-4 py-3"><span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border ${getStatusColor(order.status)}`}>{getStatusIcon(order.status)}{order.status}</span></td>
                               <td className="px-4 py-3 text-gray-600">{order.items} items</td>
                               <td className="px-4 py-3 font-medium text-gray-900">{formatINR(order.amount)}</td>
-                              <td className="px-4 py-3 text-right"><button className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors"><Eye size={14} /></button></td>
+                              <td className="px-4 py-3 text-right"><button
+                                onClick={() => navigate(`/sales/orders/order-details/${order.id}`)}
+                                className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors"
+                              >
+                                <Eye size={14} />
+                              </button>
+
+                              </td>
                             </tr>
                           ))
                         ) : (

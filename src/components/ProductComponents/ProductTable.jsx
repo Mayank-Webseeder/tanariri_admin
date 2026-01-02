@@ -298,7 +298,7 @@ const ProductTable = () => {
           <div className="flex items-center justify-end gap-2 mb-0 py-2">
             <button
               onClick={handleExport}
-              className="inline-flex items-center gap-1 px-3 py-2 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
             >
               <Download size={14} />
               Export
@@ -467,31 +467,31 @@ const ProductTable = () => {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-2 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">
                       Image
                     </th>
-                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-2 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">
                       Title
                     </th>
-                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-2 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">
                       Category
                     </th>
-                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-2 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">
                       Original Price
                     </th>
-                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-2 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">
                       Discount Price
                     </th>
-                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-2 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-2 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">
                       Best Seller
                     </th>
-                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-2 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">
                       Hidden
                     </th>
-                    <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-2 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -514,23 +514,23 @@ const ProductTable = () => {
                         <Link
                           to={`/catalogue/product/update-product/${record.key}`}
                           state={{ productData: record }}
-                          className="text-xs font-medium text-[#293a90] hover:underline"
+                          className="text-sm font-medium text-[#293a90] hover:underline"
                         >
                           {record.title}
                         </Link>
                       </td>
                       <td className="py-2 px-4">
-                        <div className="text-xs text-gray-900">
+                        <div className="text-sm text-gray-900">
                           {record.category?.name || "N/A"}
                         </div>
                       </td>
                       <td className="py-2 px-4">
-                        <div className="text-xs font-medium text-green-600">
+                        <div className="text-sm font-medium text-green-600">
                           ₹{record.originalPrice}
                         </div>
                       </td>
                       <td className="py-2 px-4">
-                        <div className="text-xs font-medium text-gray-500">
+                        <div className="text-sm font-medium text-gray-500">
                           ₹{record.discountedPrice || "N/A"}
                         </div>
                       </td>
@@ -538,7 +538,7 @@ const ProductTable = () => {
                         <select
                           value={record.isActive ? "Active" : "Inactive"}
                           onChange={() => handleToggleStatus(record.key)}
-                          className={`px-2 py-1 text-xs rounded-full border transition-colors cursor-pointer ${getStatusColor(
+                          className={`px-2 py-1 text-sm rounded-full border transition-colors cursor-pointer ${getStatusColor(
                             record.isActive ? "active" : "inactive"
                           )}`}
                         >
@@ -550,7 +550,7 @@ const ProductTable = () => {
                         <select
                           value={record.bestSeller ? "Best Seller" : "Normal"}
                           onChange={() => handleToggleBestSeller(record.key)}
-                          className={`px-2 py-1 text-xs rounded-full border transition-colors cursor-pointer ${getBestSellerColor(
+                          className={`px-2 py-1 text-sm rounded-full border transition-colors cursor-pointer ${getBestSellerColor(
                             record.bestSeller
                           )}`}
                         >
@@ -562,7 +562,7 @@ const ProductTable = () => {
                         <select
                           value={record.hideProduct ? "Hidden" : "Visible"}
                           onChange={() => handleToggleHide(record.key)}
-                          className={`px-2 py-1 text-xs rounded-full border transition-colors cursor-pointer ${getHideColor(
+                          className={`px-2 py-1 text-sm rounded-full border transition-colors cursor-pointer ${getHideColor(
                             record.hideProduct
                           )}`}
                         >
@@ -603,7 +603,7 @@ const ProductTable = () => {
                       >
                         <div className="flex flex-col items-center gap-2">
                           <Package className="w-8 h-8 text-gray-300" />
-                          <span className="text-xs">No products found</span>
+                          <span className="text-sm">No products found</span>
                         </div>
                       </td>
                     </tr>
@@ -615,7 +615,7 @@ const ProductTable = () => {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between w-full">
-                <div className="text-xs text-gray-700">
+                <div className="text-sm text-gray-700">
                   Showing {startIndex + 1} to{" "}
                   {Math.min(startIndex + itemsPerPage, filteredData.length)} of{" "}
                   {filteredData.length} results
@@ -624,7 +624,7 @@ const ProductTable = () => {
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
-                    className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Previous
                   </button>
@@ -635,7 +635,7 @@ const ProductTable = () => {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`px-2 py-1 text-xs rounded ${currentPage === page
+                      className={`px-2 py-1 text-sm rounded ${currentPage === page
                         ? "bg-[#293a90] text-white border border-[#293a90]"
                         : "border border-gray-300 hover:bg-gray-50"
                         }`}
@@ -648,7 +648,7 @@ const ProductTable = () => {
                       setCurrentPage(Math.min(totalPages, currentPage + 1))
                     }
                     disabled={currentPage === totalPages}
-                    className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next
                   </button>

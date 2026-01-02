@@ -146,6 +146,7 @@ const UpdateShippingAndPaymentOptions = ({
                 <InputNumber
                   min={0}
                   value={charge.amount}
+                  disabled
                   onChange={(value) => {
                     const updatedCharges = [...additionalCharges];
                     updatedCharges[index].amount = value || 0;
