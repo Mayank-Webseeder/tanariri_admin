@@ -52,7 +52,6 @@ const OrdersTable = () => {
   const [activeTab, setActiveTab] = useState("all_orders");
 
   const mappedData = useMemo(() => {
-    // Failsafe: Agar orders array nahi hai to khali array set karein
     const safeOrders = Array.isArray(orders) ? orders : [];
 
     return safeOrders.map((order) => ({
@@ -73,7 +72,7 @@ const OrdersTable = () => {
       paymentStatus: order.paymentInfo?.status || "pending",
       total: `₹${(order.totalAmount || 0).toFixed(2)}`,
       waybill: order.waybill || null,
-      returnWaybill: order.returnWaybill || null, // <-- Ye add kiya check karne ke liye
+      returnWaybill: order.returnWaybill || null,
       orderDetails: order,
     }));
   }, [orders]);
@@ -526,7 +525,8 @@ const OrdersTable = () => {
                       <td className="px-6 py-4">
                         <span className="text-sm text-gray-900">{record.date}</span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
+                      <td className="px-6 py-4 text-sm text-gray-900 cursor-pointer"
+                        onClick={() => handleViewDetails(record.id, record.orderDetails)}>
                         {record.customer}
                       </td>
                       <td className="px-6 py-4">
@@ -542,7 +542,6 @@ const OrdersTable = () => {
                           <option value="delivered">Delivered</option>
                           <option value="cancelled">Cancelled</option>
 
-                          {/* Agar status standard nahi hai, to dropdown me explicitly add kar do */}
                           {!STANDARD_OPTIONS.includes(record.orderStatus) && (
                             <option value={record.orderStatus}>
                               {String(record.orderStatus).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
