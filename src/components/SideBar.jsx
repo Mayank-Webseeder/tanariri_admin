@@ -1,6 +1,6 @@
 import { RiCustomerService2Line } from "react-icons/ri";
 import { BiMessageRounded } from "react-icons/bi";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FaTh,
@@ -37,6 +37,29 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState(location.pathname);
+
+  // Sync state when URL changes or on initial load
+  useEffect(() => {
+    // Check if current path matches any menu item exactly
+    const currentMenuItem = menuItems.find(item => location.pathname === item.path);
+
+    if (currentMenuItem) {
+      setActiveTab(currentMenuItem.path);
+      localStorage.setItem("activeTab", currentMenuItem.path);
+    } else {
+      // If we are on an internal page, try to load from localStorage
+      const savedTab = localStorage.getItem("activeTab");
+      if (savedTab) {
+        setActiveTab(savedTab);
+      }
+    }
+  }, [location.pathname]);
+
+  const handleTabClick = (path) => {
+    setActiveTab(path);
+    localStorage.setItem("activeTab", path);
+  };
 
   const filteredMenuItems = useMemo(() => {
     try {
@@ -60,6 +83,7 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
       localStorage.removeItem("adminUser");
       localStorage.removeItem("userPreferences");
       localStorage.removeItem("sessionData");
+      localStorage.removeItem("activeTab"); // Clear active tab on logout
 
       navigate("/", { replace: true });
       window.location.reload();
@@ -92,8 +116,9 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={() => handleTabClick(item.path)}
                 className={`group flex items-center justify-center ${isExpanded ? "justify-start" : ""
-                  } px-3 py-3 text-sm font-medium rounded-xl transition-all duration-300 relative overflow-hidden ${location.pathname === item.path
+                  } px-3 py-3 text-sm font-medium rounded-xl transition-all duration-300 relative overflow-hidden ${activeTab === item.path
                     ? "bg-[#293a90] text-white shadow-lg shadow-[#293a90]/25"
                     : "text-slate-700 hover:bg-[#293a90]/5 hover:text-[#293a90] hover:shadow-md"
                   }`}
@@ -112,8 +137,8 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
                   </span>
                 )}
 
-                {location.pathname === item.path && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1  rounded-r-full"></div>
+                {activeTab === item.path && (
+                  <div className="absolute left-0 top-0 bottom-0 w-1 rounded-r-full"></div>
                 )}
 
                 {!isExpanded && (
@@ -177,8 +202,11 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
               <Link
                 key={item.path}
                 to={item.path}
-                onClick={toggleSidebar}
-                className={`flex items-center px-4 py-4 text-sm font-medium rounded-xl transition-all duration-300 ${location.pathname === item.path
+                onClick={() => {
+                  handleTabClick(item.path);
+                  toggleSidebar();
+                }}
+                className={`flex items-center px-4 py-4 text-sm font-medium rounded-xl transition-all duration-300 ${activeTab === item.path
                   ? "bg-[#293a90] text-white shadow-lg shadow-[#293a90]/25"
                   : "text-slate-700 hover:bg-[#293a90]/5 hover:text-[#293a90] hover:shadow-md"
                   }`}
@@ -190,7 +218,7 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
                 />
                 <span className="font-medium">{item.label}</span>
 
-                {location.pathname === item.path && (
+                {activeTab === item.path && (
                   <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
                 )}
               </Link>
